@@ -11,6 +11,7 @@ use PHPStan\Collectors\Collector;
 use PHPStan\Reflection\ClassReflection;
 use TomasVotruba\UnusedPublic\ApiDocStmtAnalyzer;
 use TomasVotruba\UnusedPublic\Configuration;
+use TomasVotruba\UnusedPublic\InternalOrRequiredStmtAnalyzer;
 
 /**
  * @implements Collector<ClassConst, non-empty-array<array{class-string, string, int}>|null>
@@ -18,8 +19,9 @@ use TomasVotruba\UnusedPublic\Configuration;
 final readonly class PublicClassLikeConstCollector implements Collector
 {
     public function __construct(
-        private ApiDocStmtAnalyzer $apiDocStmtAnalyzer,
-        private Configuration $configuration,
+        private readonly ApiDocStmtAnalyzer $apiDocStmtAnalyzer,
+        private readonly InternalOrRequiredStmtAnalyzer $internalOrRequiredStmtAnalyzer,
+        private readonly Configuration $configuration,
     ) {
     }
 
@@ -48,6 +50,10 @@ final readonly class PublicClassLikeConstCollector implements Collector
         }
 
         if ($this->apiDocStmtAnalyzer->isApiDoc($node, $classReflection)) {
+            return null;
+        }
+
+        if ($this->internalOrRequiredStmtAnalyzer->isInternalOrRequired($node, $classReflection)) {
             return null;
         }
 
