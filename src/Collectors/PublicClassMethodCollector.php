@@ -9,10 +9,12 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
 use PHPStan\Reflection\ClassReflection;
-use TomasVotruba\UnusedPublic\ApiDocStmtAnalyzer;
 use TomasVotruba\UnusedPublic\Configuration;
 use TomasVotruba\UnusedPublic\MethodTypeDetector;
 use TomasVotruba\UnusedPublic\PublicClassMethodMatcher;
+use TomasVotruba\UnusedPublic\StmtAnalyzers\ApiDocStmtAnalyzer;
+use TomasVotruba\UnusedPublic\StmtAnalyzers\InternalStmtAnalyzer;
+use TomasVotruba\UnusedPublic\StmtAnalyzers\RequiredStmtAnalyzer;
 
 /**
  * @implements Collector<ClassMethod, array{class-string, string, int}|null>
@@ -39,6 +41,8 @@ final class PublicClassMethodCollector implements Collector
 
     public function __construct(
         private readonly ApiDocStmtAnalyzer $apiDocStmtAnalyzer,
+        private readonly InternalStmtAnalyzer $internalStmtAnalyzer,
+        private readonly RequiredStmtAnalyzer $requiredStmtAnalyzer,
         private readonly PublicClassMethodMatcher $publicClassMethodMatcher,
         private readonly MethodTypeDetector $methodTypeDetector,
         private readonly Configuration $configuration,
@@ -73,7 +77,11 @@ final class PublicClassMethodCollector implements Collector
             return null;
         }
 
-        if ($this->apiDocStmtAnalyzer->isApiDoc($node, $classReflection)) {
+        if (
+            $this->apiDocStmtAnalyzer->isDoc($node, $classReflection) ||
+            $this->internalStmtAnalyzer->isDoc($node, $classReflection) ||
+            $this->requiredStmtAnalyzer->isDoc($node, $classReflection)
+        ) {
             return null;
         }
 
