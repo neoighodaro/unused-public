@@ -10,15 +10,18 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
+use PHPStan\Reflection\ClassReflection;
+use TomasVotruba\UnusedPublic\ClassTypeDetector;
 use TomasVotruba\UnusedPublic\Configuration;
 
 /**
- * @implements Collector<StaticPropertyFetch, string[]>
+ * @implements Collector<StaticPropertyFetch, non-empty-array<string>|null>
  */
-final class PublicStaticPropertyFetchCollector implements Collector
+final readonly class PublicStaticPropertyFetchCollector implements Collector
 {
     public function __construct(
-        private readonly Configuration $configuration
+        private Configuration $configuration,
+        private ClassTypeDetector $classTypeDetector,
     ) {
     }
 
@@ -29,7 +32,7 @@ final class PublicStaticPropertyFetchCollector implements Collector
 
     /**
      * @param StaticPropertyFetch $node
-     * @return string[]|null
+     * @return non-empty-array<string>|null
      */
     public function processNode(Node $node, Scope $scope): ?array
     {
@@ -37,22 +40,43 @@ final class PublicStaticPropertyFetchCollector implements Collector
             return null;
         }
 
-        if (! $node->class instanceof Name) {
-            return null;
-        }
-
         if (! $node->name instanceof Identifier) {
             return null;
         }
 
-        if ($node->class->toString() === 'self') {
+        if (
+            $node->class instanceof Name
+            && ($node->class->toString() === 'self' || $node->class->toString() === 'static')
+        ) {
             // self fetch is allowed
             return null;
         }
 
-        $className = $node->class->toString();
-        $propertyName = $node->name->toString();
+        $classReflection = $scope->getClassReflection();
+        if ($classReflection instanceof ClassReflection && $this->classTypeDetector->isTestClass($classReflection)) {
+            return null;
+        }
 
-        return [$className . '::' . $propertyName];
+        $classType = $node->class instanceof Name ? $scope->resolveTypeByName($node->class) : $scope->getType(
+            $node->class
+        );
+
+        $result = [];
+        foreach ($classType->getObjectClassReflections() as $classReflection) {
+            $propertyName = $node->name->toString();
+
+            if (! $classReflection->hasProperty($propertyName)) {
+                continue;
+            }
+
+            $propertyReflection = $classReflection->getProperty($propertyName, $scope);
+            $result[] = $propertyReflection->getDeclaringClass()->getName() . '::' . $propertyName;
+        }
+
+        if ($result === []) {
+            return null;
+        }
+
+        return $result;
     }
 }

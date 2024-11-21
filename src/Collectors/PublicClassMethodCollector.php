@@ -19,7 +19,7 @@ use TomasVotruba\UnusedPublic\StmtAnalyzers\RequiredStmtAnalyzer;
 /**
  * @implements Collector<ClassMethod, array{class-string, string, int}|null>
  */
-final class PublicClassMethodCollector implements Collector
+final readonly class PublicClassMethodCollector implements Collector
 {
     /**
      * @var string[]

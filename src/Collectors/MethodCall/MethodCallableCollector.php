@@ -16,15 +16,15 @@ use TomasVotruba\UnusedPublic\ClassTypeDetector;
 use TomasVotruba\UnusedPublic\Configuration;
 
 /**
- * @implements Collector<MethodCallableNode, array<string>|null>
+ * @implements Collector<MethodCallableNode, non-empty-array<string>|null>
  */
-final class MethodCallableCollector implements Collector
+final readonly class MethodCallableCollector implements Collector
 {
     public function __construct(
-        private readonly ClassMethodCallReferenceResolver $classMethodCallReferenceResolver,
-        private readonly Configuration $configuration,
-        private readonly ClassTypeDetector $classTypeDetector,
-        private readonly CallReferencesFlatter $callReferencesFlatter,
+        private ClassMethodCallReferenceResolver $classMethodCallReferenceResolver,
+        private Configuration $configuration,
+        private ClassTypeDetector $classTypeDetector,
+        private CallReferencesFlatter $callReferencesFlatter,
     ) {
     }
 

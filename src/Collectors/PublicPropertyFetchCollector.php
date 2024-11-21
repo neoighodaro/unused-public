@@ -11,18 +11,17 @@ use PhpParser\Node\Identifier;
 use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
 use PHPStan\Reflection\ClassReflection;
-use PHPStan\Type\TypeWithClassName;
 use TomasVotruba\UnusedPublic\ClassTypeDetector;
 use TomasVotruba\UnusedPublic\Configuration;
 
 /**
- * @implements Collector<PropertyFetch, string[]>
+ * @implements Collector<PropertyFetch, non-empty-array<string>|null>
  */
-final class PublicPropertyFetchCollector implements Collector
+final readonly class PublicPropertyFetchCollector implements Collector
 {
     public function __construct(
-        private readonly Configuration $configuration,
-        private readonly ClassTypeDetector $classTypeDetector,
+        private Configuration $configuration,
+        private ClassTypeDetector $classTypeDetector,
     ) {
     }
 
@@ -36,7 +35,7 @@ final class PublicPropertyFetchCollector implements Collector
 
     /**
      * @param PropertyFetch $node
-     * @return string[]|null
+     * @return non-empty-array<string>|null
      */
     public function processNode(Node $node, Scope $scope): ?array
     {
@@ -53,19 +52,28 @@ final class PublicPropertyFetchCollector implements Collector
             return null;
         }
 
-        $propertyFetcherType = $scope->getType($node->var);
-        if (! $propertyFetcherType instanceof TypeWithClassName) {
-            return null;
-        }
-
         $classReflection = $scope->getClassReflection();
         if ($classReflection instanceof ClassReflection && $this->classTypeDetector->isTestClass($classReflection)) {
             return null;
         }
 
-        $className = $propertyFetcherType->getClassName();
-        $propertyName = $node->name->toString();
+        $result = [];
+        $propertyFetcherType = $scope->getType($node->var);
+        foreach ($propertyFetcherType->getObjectClassReflections() as $classReflection) {
+            $propertyName = $node->name->toString();
 
-        return [$className . '::' . $propertyName];
+            if (! $classReflection->hasProperty($propertyName)) {
+                continue;
+            }
+
+            $propertyReflection = $classReflection->getProperty($propertyName, $scope);
+            $result[] = $propertyReflection->getDeclaringClass()->getName() . '::' . $propertyName;
+        }
+
+        if ($result === []) {
+            return null;
+        }
+
+        return $result;
     }
 }
