@@ -21,7 +21,7 @@ use TomasVotruba\UnusedPublic\Utils\Arrays;
 /**
  * @see \TomasVotruba\UnusedPublic\Tests\Rules\UnusedPublicClassConstRule\UnusedPublicClassConstRuleTest
  */
-final class UnusedPublicClassConstRule implements Rule
+final readonly class UnusedPublicClassConstRule implements Rule
 {
     /**
      * @var string
@@ -31,8 +31,8 @@ final class UnusedPublicClassConstRule implements Rule
     public const ERROR_MESSAGE = 'Public constant "%s::%s" is never used';
 
     public function __construct(
-        private readonly Configuration $configuration,
-        private readonly TemplateRegexFinder $templateRegexFinder,
+        private Configuration $configuration,
+        private TemplateRegexFinder $templateRegexFinder,
     ) {
     }
 
@@ -67,6 +67,10 @@ final class UnusedPublicClassConstRule implements Rule
 
         foreach ($publicClassLikeConstCollector as $filePath => $declarationsGroups) {
             foreach ($declarationsGroups as $declarationGroup) {
+                if ($declarationGroup === null) {
+                    continue;
+                }
+                
                 foreach ($declarationGroup as [$className, $constantName, $line]) {
                     if ($this->isClassConstantUsed(
                         $className,
@@ -84,6 +88,7 @@ final class UnusedPublicClassConstRule implements Rule
                         ->file($filePath)
                         ->line($line)
                         ->tip(RuleTips::SOLUTION_MESSAGE)
+                        ->identifier('public.classConstant.unused')
                         ->build();
                 }
             }

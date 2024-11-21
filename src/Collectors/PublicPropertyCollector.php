@@ -17,9 +17,9 @@ use TomasVotruba\UnusedPublic\StmtAnalyzers\InternalStmtAnalyzer;
 use TomasVotruba\UnusedPublic\StmtAnalyzers\RequiredStmtAnalyzer;
 
 /**
- * @implements Collector<InClassNode, array<array{class-string, string, int}>>
+ * @implements Collector<InClassNode, non-empty-array<array{class-string, string, int}>>
  */
-final class PublicPropertyCollector implements Collector
+final readonly class PublicPropertyCollector implements Collector
 {
     /**
      * @var array<class-string<Component>>
@@ -44,7 +44,7 @@ final class PublicPropertyCollector implements Collector
 
     /**
      * @param InClassNode $node
-     * @return array<array{string, string, int}>|null
+     * @return non-empty-array<array{string, string, int}>|null
      */
     public function processNode(Node $node, Scope $scope): ?array
     {
@@ -83,6 +83,10 @@ final class PublicPropertyCollector implements Collector
             }
         }
 
+        if ($publicPropertyNames === []) {
+            return null;
+        }
+
         return $publicPropertyNames;
     }
 
@@ -92,9 +96,9 @@ final class PublicPropertyCollector implements Collector
             return false;
         }
 
-        $propertyReflection = $classReflection->getProperty($propertyName, $scope);
+        $extendedPropertyReflection = $classReflection->getProperty($propertyName, $scope);
         // don't inherit doc from a private property
-        if ($propertyReflection->isPrivate()) {
+        if ($extendedPropertyReflection->isPrivate()) {
             return false;
         }
 
